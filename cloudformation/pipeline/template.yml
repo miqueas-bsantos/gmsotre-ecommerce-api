@@ -1,0 +1,278 @@
+# Name concil-docker-ofx-us-east-1-<STAGE>
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Pipeline Serverless
+
+Parameters:
+  ImageRepository:
+    Type: AWS::ECR::Repository
+    Properties: 
+      # ImageScanningConfiguration: Json
+      ImageTagMutability: MUTABLE
+      # LifecyclePolicy: 
+      #   LifecyclePolicy
+      RepositoryName: !Sub gmstore-api-${AWS::AccountId}-${AWS::Region}
+      Tags: 
+        - Key: "enviroment"
+          Value: "staging"
+        - Key: "author"
+          Value: "miqueas.santos"
+        - Key: "project"
+          Value: "gmstore-api"
+
+  Stage:
+    Type: String
+    Description: Ambiente do deploy
+    Default: staging
+    AllowedValues:
+      - staging
+      - production
+  CodeStarConnectionPreffix:
+    Description: Prefixo do parâmetro do SSM para recuperar codestar connection
+    Type: String
+    Default: "/parameter/codestar/connection/concil-bb-conn-"
+  CodeStarConnectionVersion:
+    Description: Versão do parâmetro do SSM para recuperar codestar connection
+    Type: String
+    Default: "1"
+  RepositoryName:
+    Description: Nome do repositorio git
+    Type: String
+    Default: gmsotre-ecommerce-api
+  AccountName:
+    Description: Nome do workspace da conta de acesso ao Bitbucket
+    Type: String
+    Default: miqueas-bsantos
+  DockerHubName:
+    Description: Nome do segredo do Secrets Manager que contém o segredo do DockerHub
+    Type: String
+    Default: concil-dockerhub-credentials
+
+Mappings: 
+  StageMap:
+    staging:
+      BranchName: development
+    production:
+      BranchName: master
+
+Resources:
+  PipelineRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument: 
+        Version: "2012-10-17"
+        Statement: 
+          - Effect: Allow
+            Principal: 
+              Service: 
+                - "codepipeline.amazonaws.com"
+            Action: 
+              - "sts:AssumeRole"
+      Policies:
+        - PolicyName: root
+          PolicyDocument: 
+            Version: "2012-10-17"
+            Statement: 
+              - Effect: Allow
+                Action:
+                  - "codecommit:GetBranch"
+                  - "codecommit:GetCommit"
+                  - "codecommit:UploadArchive"
+                  - "codecommit:GetUploadArchiveStatus"      
+                  - "codecommit:CancelUploadArchive"
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - "codestar-connections:UseConnection"
+                  - "codestar-connections:GetConnection"
+                  - "codestar-connections:ListConnections"
+                  - "codestar-connections:GetInstallationUrl"
+                  - "codestar-connections:GetIndividualAccessToken"
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - "opsworks:DescribeStacks"
+                  - "rds:*"
+                  - "codedeploy:CreateDeployment"
+                  - "codedeploy:GetApplicationRevision"
+                  - "codedeploy:GetDeploymentConfig"
+                  - "cloudformation:CreateChangeSet"
+                  - "sqs:*"
+                  - "autoscaling:*"
+                  - "codebuild:BatchGetBuilds"
+                  - "cloudformation:DeleteChangeSet"
+                  - "iam:PassRole"
+                  - "iam:CreateServiceLinkedRole"
+                  - "codecommit:GetCommit"
+                  - "cloudformation:UpdateStack"
+                  - "cloudformation:DescribeChangeSet"
+                  - "cloudformation:ExecuteChangeSet"
+                  - "sns:*"
+                  - "cloudformation:SetStackPolicy"
+                  - "codecommit:UploadArchive"
+                  - "lambda:Get*"
+                  - "lambda:List*"
+                  - "lambda:CreateFunction"
+                  - "lambda:AddPermission"
+                  - "lambda:CreateAlias"
+                  - "lambda:DeleteFunction"
+                  - "lambda:InvokeFunction"
+                  - "lambda:PublishVersion"
+                  - "lambda:RemovePermission"
+                  - "lambda:Update*"
+                  - "s3:*"
+                  - "codedeploy:RegisterApplicationRevision"
+                  - "cloudformation:*"
+                  - "opsworks:DescribeDeployments"
+                  - "elasticloadbalancing:*"
+                  - "s3:GetBucketVersioning"
+                  - "codecommit:CancelUploadArchive"
+                  - "cloudformation:DescribeStacks"
+                  - "elasticbeanstalk:*"
+                  - "s3:GetObject"
+                  - "codecommit:GetUploadArchiveStatus"
+                  - "opsworks:UpdateApp"
+                  - "opsworks:CreateDeployment"
+                  - "cloudformation:CreateStack"
+                  - "cloudwatch:*"
+                  - "codecommit:GetBranch"
+                  - "cloudformation:DeleteStack"
+                  - "opsworks:DescribeInstances"
+                  - "codedeploy:GetDeployment"
+                  - "ecs:*"
+                  - "ec2:*"
+                  - "ecr:*"
+                  - "opsworks:DescribeCommands"
+                  - "codebuild:StartBuild"
+                  - "s3:GetObjectVersion"
+                  - "cloudformation:ValidateTemplate"
+                  - "opsworks:DescribeApps"
+                  - "opsworks:UpdateStack"
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - "s3:PutObject"
+                Resource:
+                  - "arn:aws:s3:::codepipeline*"
+  
+  GmStoreBucketS3:
+    Type: "AWS::S3::Bucket"
+    Properties:
+      BucketName: !Sub gm-docker-api-${Stage}-${AWS::AccountId}-${AWS::Region}
+
+  CodeBuildRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument: 
+        Version: "2012-10-17"
+        Statement: 
+          - Effect: Allow
+            Principal: 
+              Service: 
+                - "codebuild.amazonaws.com"
+            Action: 
+              - "sts:AssumeRole"
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AdministratorAccess
+
+  SourceRepositoryCodeBuild:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Name: !Sub 'source-docker-gmstore-api-code-build-${Stage}'
+      Description: Download source code from BitBucket.
+      Artifacts:
+        Type: CODEPIPELINE
+      Environment:
+        Type: LINUX_CONTAINER
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/standard:4.0
+        EnvironmentVariables: 
+          - Name: STAGE
+            Type: PLAINTEXT
+            Value: !Sub ${Stage}
+      ServiceRole: !GetAtt [CodeBuildRole, "Arn"]
+      Cache:
+        Type: LOCAL
+        Modes: [ LOCAL_SOURCE_CACHE ]
+      Source:
+        Type: CODEPIPELINE
+      TimeoutInMinutes: 20
+  
+  BuildDeployGmStore:
+    Type: "AWS::CodeBuild::Project"
+    Properties:
+      Name: !Sub 'docker-gmstore-api-code-build-${Stage}'
+      Description: !Sub "Deploy with docker into concil ${Stage} account."
+      ServiceRole: !Ref CodeBuildRole
+      TimeoutInMinutes: 60
+      Source:
+        Type: CODEPIPELINE
+        BuildSpec: ./cloudformation/pipeline/buildspec.yml
+      Environment:
+        Type: "LINUX_CONTAINER"
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/standard:4.0
+        PrivilegedMode: true
+        EnvironmentVariables:
+          - Name: STAGE
+            Type: PLAINTEXT
+            Value: !Sub ${Stage}
+          - Name: REGION
+            Type: PLAINTEXT
+            Value: !Sub ${AWS::Region}
+          - Name: ACCOUNT_ID
+            Type: PLAINTEXT
+            Value: !Sub ${AWS::AccountId}
+          - Name: DOCKERHUB_USERNAME
+            Type: PLAINTEXT
+            Value: !Sub "{{resolve:secretsmanager:${DockerHubName}:SecretString:username}}"
+          - Name: DOCKERHUB_PASSWORD
+            Type: PLAINTEXT
+            Value: !Sub "{{resolve:secretsmanager:${DockerHubName}:SecretString:password}}"
+      Artifacts:
+        Type: CODEPIPELINE
+
+  Pipeline:
+    Type: AWS::CodePipeline::Pipeline
+    Properties:
+      ArtifactStore:
+        Location: !Ref GmStoreBucketS3
+        Type: S3
+      Name: !Sub 'gmstore-pipeline-docker-api-${Stage}-${AWS::AccountId}-${Stage}'
+      RoleArn: !GetAtt [PipelineRole, "Arn"]
+      Stages:
+        # Stage 1:  Get the source from Bitbucket:
+        - Name: "Source"
+          Actions:
+            - ActionTypeId:
+                Category: Source
+                Owner: AWS
+                Provider: CodeStarSourceConnection
+                Version: "1"
+              Name: Source
+              Configuration:
+                ConnectionArn: 
+                  !Join
+                    - ""
+                    - - !Sub "arn:aws:codestar-connections:${AWS::Region}:${AWS::AccountId}:"
+                      - !Sub "{{resolve:ssm:${CodeStarConnectionPreffix}${Stage}:${CodeStarConnectionVersion}}}"
+                FullRepositoryId: !Sub "${AccountName}/${RepositoryName}"
+                BranchName: !FindInMap [StageMap, !Ref "Stage", BranchName]
+                OutputArtifactFormat: CODE_ZIP
+              OutputArtifacts: 
+                - Name: SourceArtifact
+        # Stage 2:  Build and Deploy using Docker
+        - Name: BuildDeploy
+          Actions:
+            - Name: Build-Deploy-Docker-GmStore
+              RunOrder: 1
+              InputArtifacts:
+                - Name: SourceArtifact
+              ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Provider: CodeBuild
+                Version: "1"
+              Configuration:
+                ProjectName:  !Ref BuildDeployGmStore
+              OutputArtifacts:
+                - Name: BuildDeployGmStore

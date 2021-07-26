@@ -1,0 +1,5 @@
+src/config.py
+.vscode/settings.json
+*.pyc
+env/*
+gmstore.db

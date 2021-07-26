@@ -1,0 +1,71 @@
+{
+  "code": "XPTO-20",
+  "imageUri": "http://localhost:8080/7665-01.webp",
+  "imagesUriDetail": [
+      {
+        "path": "http://localhost:8080/136036-060-01.web"
+       }
+  ],
+  "title": "Vestido Tomara Que Caia Frente Única Planet Girls Prata",
+  "content": "Vestido Tomara Que Caia Frente Única Planet Girls Prata",
+  "price": 259.99,
+  "currency": "BRL",
+  "sizes": [
+    {
+      "size": "GG",
+      "quantity": 1
+    }
+  ],
+  "quantity": 1,
+  "discount": [
+{
+     "id": null,
+     "value": 5,
+     "start": "2021-01-01T00:00:00",
+     "end": "2021-07-01T00:00:00"
+}
+  ],
+  "category": "ROUPAS",
+  "brand": "GMSTORE",
+  "tags": [
+    {
+      "id": null,
+      "tag": "ROUPAS"
+     }
+  ],
+  "isActive": true,
+  "plan": 1
+}
+# UPDATED
+{
+  "id": 0,
+  "code": "",
+  "imagesUriDetail": [
+  ],
+  "title": "TESTE",
+  "content": "TESTE CONTENT",
+  "price": 255.00,
+  "currency": "BRL",
+  "sizes": [
+    {
+      "id": 0,
+      "size": "GG",
+      "quantity": 5
+    }
+  ],
+  "quantity": 5,
+  "discount": [
+  ],
+  "category": {
+    "id": 1
+  },
+  "brand": "GM",
+  "tags": [
+    {
+      "id": 0,
+      "tag": "VESTIDOS"
+    }
+  ],
+  "isActive": true,
+  "plan": 5
+}
