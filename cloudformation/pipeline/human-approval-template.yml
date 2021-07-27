@@ -7,7 +7,6 @@ Parameters:
     ConstraintDescription: Must be a valid email address.
     Default: miqueas.bsantos@gmail.com
 
-    
 Resources:
   # Begin API Gateway Resources
   ExecutionApi:
