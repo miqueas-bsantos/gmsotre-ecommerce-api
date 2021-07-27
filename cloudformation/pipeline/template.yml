@@ -3,22 +3,6 @@ AWSTemplateFormatVersion: "2010-09-09"
 Description: Pipeline Serverless
 
 Parameters:
-  ImageRepository:
-    Type: AWS::ECR::Repository
-    Properties: 
-      # ImageScanningConfiguration: Json
-      ImageTagMutability: MUTABLE
-      # LifecyclePolicy: 
-      #   LifecyclePolicy
-      RepositoryName: !Sub gmstore-api-${AWS::AccountId}-${AWS::Region}
-      Tags: 
-        - Key: "enviroment"
-          Value: "staging"
-        - Key: "author"
-          Value: "miqueas.santos"
-        - Key: "project"
-          Value: "gmstore-api"
-
   Stage:
     Type: String
     Description: Ambiente do deploy
@@ -55,6 +39,22 @@ Mappings:
       BranchName: master
 
 Resources:
+  ImageRepository:
+      Type: AWS::ECR::Repository
+      Properties: 
+        # ImageScanningConfiguration: Json
+        ImageTagMutability: MUTABLE
+        # LifecyclePolicy: 
+        #   LifecyclePolicy
+        RepositoryName: !Sub gmstore-api-${AWS::AccountId}-${AWS::Region}
+        Tags: 
+          - Key: "enviroment"
+            Value: "staging"
+          - Key: "author"
+            Value: "miqueas.santos"
+          - Key: "project"
+            Value: "gmstore-api"
+
   PipelineRole:
     Type: "AWS::IAM::Role"
     Properties:
@@ -157,7 +157,7 @@ Resources:
   GmStoreBucketS3:
     Type: "AWS::S3::Bucket"
     Properties:
-      BucketName: !Sub gm-docker-api-${Stage}-${AWS::AccountId}-${AWS::Region}
+      BucketName: !Sub gm-docker-api-${Stage}-${AWS::AccountId}-${AWS::Region}-1
 
   CodeBuildRole:
     Type: "AWS::IAM::Role"

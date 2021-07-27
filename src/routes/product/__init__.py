@@ -4,7 +4,6 @@ from fastapi.exceptions import HTTPException
 from fastapi import APIRouter, status, File, UploadFile, Header
 # from model import Acquirer as AcquirerModel, Schemas
 import uuid
-
 from model import (
     ProductModel, 
     SizeModel,
