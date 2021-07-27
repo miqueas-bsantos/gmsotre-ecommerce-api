@@ -1,4 +1,3 @@
-# Name concil-docker-ofx-us-east-1-<STAGE>
 AWSTemplateFormatVersion: "2010-09-09"
 Description: Pipeline Serverless
 
